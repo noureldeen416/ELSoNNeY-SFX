@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Sunny Vocal Studio FX</title>
+    <title>Sunny Vocal Studio FX Pro</title>
     <style>
         :root {
             --bg-dark: #0b0e14;
@@ -17,9 +17,9 @@
             --accent-glow: rgba(0, 229, 255, 0.25);
             --record-red: #ff2a54;
             --play-green: #00e676;
+            --denoise-teal: #1de9b6;
             --text-main: #f0f6fc;
             --text-muted: #8b949e;
-            --gold: #ffb300;
         }
         * {
             box-sizing: border-box;
@@ -46,10 +46,10 @@
             margin-bottom: 14px;
         }
         .logo {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             font-weight: 800;
             letter-spacing: 0.5px;
-            background: linear-gradient(90deg, #00e5ff, #7c4dff);
+            background: linear-gradient(90deg, #1de9b6, #00e5ff, #7c4dff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -93,7 +93,7 @@
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid #161b24;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
         }
         .note-badge {
             background: #161f2e;
@@ -102,7 +102,7 @@
             font-weight: bold;
             color: var(--accent);
             font-family: monospace;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         .transport-bar {
             display: grid;
@@ -114,7 +114,7 @@
             border: none;
             border-radius: 12px;
             padding: 13px 8px;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -150,6 +150,10 @@
             border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
+        }
+        .module-card.denoise-card {
+            border-color: rgba(29, 233, 182, 0.35);
+            background: linear-gradient(180deg, rgba(29, 233, 182, 0.05) 0%, var(--card-bg) 100%);
         }
         .module-header {
             display: flex;
@@ -245,12 +249,25 @@
             background: rgba(0, 229, 255, 0.12);
             color: var(--accent);
         }
+        .btn-learn-noise {
+            background: rgba(29, 233, 182, 0.12);
+            border: 1px solid var(--denoise-teal);
+            color: var(--denoise-teal);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">SUNNY VOCAL FX PRO</div>
+        <div class="logo">ELSoNNeY VOCAL FX PRO</div>
         <div id="statusBadge" class="status-badge">جاهز للتسجيل</div>
     </div>
 
@@ -274,16 +291,49 @@
     </div>
 
     <div class="presets-bar">
-        <div class="preset-chip active" onclick="applyPreset('studio')">🎙️ استوديو نقي</div>
-        <div class="preset-chip" onclick="applyPreset('trap')">⚡ أوتوتيون Trap تقيل</div>
-        <div class="preset-chip" onclick="applyPreset('mawwal')">🌌 موال / قاعة كبيرة</div>
-        <div class="preset-chip" onclick="applyPreset('radio')">📻 صوت راديو دافئ</div>
+        <div class="preset-chip active" onclick="applyPreset('studio', event)">🎙️ استوديو نقي</div>
+        <div class="preset-chip" onclick="applyPreset('trap', event)">⚡ أوتوتيون Trap تقيل</div>
+        <div class="preset-chip" onclick="applyPreset('mawwal', event)">🌌 موال / قاعة كبيرة</div>
+        <div class="preset-chip" onclick="applyPreset('radio', event)">📻 صوت راديو دافئ</div>
+    </div>
+
+    <!-- 0. STUDIO AI-STYLE DENOISER & CLEANER (FIRST IN CHAIN) -->
+    <div class="module-card denoise-card">
+        <div class="module-header">
+            <div class="module-title">
+                <span class="dot" style="background:var(--denoise-teal);box-shadow:0 0 8px var(--denoise-teal);"></span>
+                1. Studio Denoiser & Vocal Cleaner (تنقية الصوت أولاً)
+            </div>
+            <input type="checkbox" id="denoiseEnable" checked style="accent-color:var(--denoise-teal);width:16px;height:16px;">
+        </div>
+        <button id="learnNoiseBtn" class="btn-learn-noise">✨ تحليل دوشة الغرفة تلقائياً من التسجيل (Auto Noise Profile)</button>
+        <div class="control-row">
+            <div class="control-label">
+                <span>قوة عزل الضوضاء والشوشرة (Noise Suppression)</span>
+                <span id="dnAmountVal" class="control-val">65%</span>
+            </div>
+            <input type="range" id="dnAmount" min="0" max="100" value="65">
+        </div>
+        <div class="control-row">
+            <div class="control-label">
+                <span>حساسية بوابة الصوت (Gate Threshold)</span>
+                <span id="dnThreshVal" class="control-val">-42 dB</span>
+            </div>
+            <input type="range" id="dnThresh" min="-65" max="-20" step="1" value="-42">
+        </div>
+        <div class="control-row">
+            <div class="control-label">
+                <span>قطع الهواء والدبدبة (Low-Cut Rumble Filter)</span>
+                <span id="dnLowCutVal" class="control-val">85 Hz</span>
+            </div>
+            <input type="range" id="dnLowCut" min="20" max="180" step="5" value="85">
+        </div>
     </div>
 
     <!-- 1. AUTO-TUNE & PITCH MODULE -->
     <div class="module-card">
         <div class="module-header">
-            <div class="module-title"><span class="dot"></span> Auto-Tune & Pitch Correction</div>
+            <div class="module-title"><span class="dot"></span> 2. Auto-Tune & Pitch Correction</div>
             <input type="checkbox" id="autotuneEnable" checked style="accent-color:var(--accent);width:16px;height:16px;">
         </div>
         <div class="select-row">
@@ -306,12 +356,13 @@
                 <option value="major">Major (عجم / فرايحي)</option>
                 <option value="kurd">مقام كُرد (شرقي)</option>
                 <option value="hijaz">مقام حجاز (شرقي)</option>
+                <option value="bayati">مقام بياتي (شرقي)</option>
                 <option value="chromatic">Chromatic (كل النوتات)</option>
             </select>
         </div>
         <div class="control-row">
             <div class="control-label">
-                <span>سرعة وقوة الأوتوتيون (Retune Speed / Robotic)</span>
+                <span>سرعة وقوة الأوتوتيون (Retune Speed)</span>
                 <span id="atSpeedVal" class="control-val">75%</span>
             </div>
             <input type="range" id="atSpeed" min="0" max="100" value="75">
@@ -328,7 +379,7 @@
     <!-- 2. 3-BAND PARAMETRIC EQ MODULE -->
     <div class="module-card">
         <div class="module-header">
-            <div class="module-title"><span class="dot" style="background:#00e676;box-shadow:0 0 8px #00e676;"></span> 3-Band Studio Equalizer (EQ)</div>
+            <div class="module-title"><span class="dot" style="background:#00e676;box-shadow:0 0 8px #00e676;"></span> 3. Studio Equalizer (3-Band EQ)</div>
         </div>
         <div class="control-row">
             <div class="control-label">
@@ -356,7 +407,7 @@
     <!-- 3. STEREO DELAY MODULE -->
     <div class="module-card">
         <div class="module-header">
-            <div class="module-title"><span class="dot" style="background:#ffb300;box-shadow:0 0 8px #ffb300;"></span> Stereo Echo / Delay</div>
+            <div class="module-title"><span class="dot" style="background:#ffb300;box-shadow:0 0 8px #ffb300;"></span> 4. Stereo Echo / Delay</div>
         </div>
         <div class="control-row">
             <div class="control-label">
@@ -384,7 +435,7 @@
     <!-- 4. STUDIO CONVOLUTION REVERB MODULE -->
     <div class="module-card">
         <div class="module-header">
-            <div class="module-title"><span class="dot" style="background:#d500f9;box-shadow:0 0 8px #d500f9;"></span> Studio Hall Reverb</div>
+            <div class="module-title"><span class="dot" style="background:#d500f9;box-shadow:0 0 8px #d500f9;"></span> 5. Studio Hall Reverb</div>
         </div>
         <div class="control-row">
             <div class="control-label">
@@ -413,6 +464,7 @@ let recordedChunks = [];
 let scriptProcessor = null;
 
 // Audio Graph Nodes
+let highPassDenoiseNode, deHissLowPassNode;
 let eqLowNode, eqMidNode, eqHighNode;
 let delayNode, delayFeedbackNode, delayWetGain;
 let convolverNode, reverbWetGain, dryGainNode, compressorNode, analyserNode;
@@ -423,6 +475,7 @@ const SCALES = {
     major: [0, 2, 4, 5, 7, 9, 11],
     kurd: [0, 1, 3, 5, 7, 8, 10],
     hijaz: [0, 1, 4, 5, 7, 8, 10],
+    bayati: [0, 1.5, 3, 5, 7, 8, 10],
     chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 };
 
@@ -452,6 +505,17 @@ function createImpulseResponse(duration, decay) {
 }
 
 function setupAudioGraph() {
+    // Stage 1 Hardware Filters for Denoiser (Rumble High-Pass + Hiss Tamer)
+    highPassDenoiseNode = audioCtx.createBiquadFilter();
+    highPassDenoiseNode.type = "highpass";
+    highPassDenoiseNode.frequency.value = 85;
+    highPassDenoiseNode.Q.value = 0.707;
+
+    deHissLowPassNode = audioCtx.createBiquadFilter();
+    deHissLowPassNode.type = "lowpass";
+    deHissLowPassNode.frequency.value = 13500;
+
+    // Stage 2: 3-Band EQ
     eqLowNode = audioCtx.createBiquadFilter();
     eqLowNode.type = "lowshelf";
     eqLowNode.frequency.value = 120;
@@ -465,6 +529,7 @@ function setupAudioGraph() {
     eqHighNode.type = "highshelf";
     eqHighNode.frequency.value = 8000;
 
+    // Stage 3: Studio Vocal Compressor
     compressorNode = audioCtx.createDynamicsCompressor();
     compressorNode.threshold.value = -20;
     compressorNode.knee.value = 12;
@@ -472,6 +537,7 @@ function setupAudioGraph() {
     compressorNode.attack.value = 0.005;
     compressorNode.release.value = 0.15;
 
+    // Stage 4: Stereo Delay & Hall Reverb
     delayNode = audioCtx.createDelay(2.0);
     delayFeedbackNode = audioCtx.createGain();
     delayWetGain = audioCtx.createGain();
@@ -484,23 +550,22 @@ function setupAudioGraph() {
     analyserNode = audioCtx.createAnalyser();
     analyserNode.fftSize = 2048;
 
-    // Connect chain: EQ -> Compressor -> Dry/Delay/Reverb -> Analyser -> Destination
+    // Routing: HighPass -> DeHiss -> EQ -> Compressor -> Effects -> Output
+    highPassDenoiseNode.connect(deHissLowPassNode);
+    deHissLowPassNode.connect(eqLowNode);
     eqLowNode.connect(eqMidNode);
     eqMidNode.connect(eqHighNode);
     eqHighNode.connect(compressorNode);
 
-    // Dry path
     compressorNode.connect(dryGainNode);
     dryGainNode.connect(analyserNode);
 
-    // Delay path
     compressorNode.connect(delayNode);
     delayNode.connect(delayFeedbackNode);
     delayFeedbackNode.connect(delayNode);
     delayNode.connect(delayWetGain);
     delayWetGain.connect(analyserNode);
 
-    // Reverb path
     convolverNode.buffer = createImpulseResponse(parseFloat(document.getElementById('revDecay').value), 2.5);
     compressorNode.connect(convolverNode);
     convolverNode.connect(reverbWetGain);
@@ -512,6 +577,14 @@ function setupAudioGraph() {
 
 function updateEffectParams() {
     if (!audioCtx) return;
+    const dnEnabled = document.getElementById('denoiseEnable').checked;
+    const lowCutHz = parseFloat(document.getElementById('dnLowCut').value);
+    const dnAmount = parseFloat(document.getElementById('dnAmount').value) / 100;
+
+    highPassDenoiseNode.frequency.value = dnEnabled ? lowCutHz : 10;
+    // Dynamic high-frequency hiss roll-off based on denoise strength
+    deHissLowPassNode.frequency.value = dnEnabled ? (16000 - dnAmount * 4500) : 20000;
+
     eqLowNode.gain.value = parseFloat(document.getElementById('eqLow').value);
     eqMidNode.gain.value = parseFloat(document.getElementById('eqMid').value);
     eqHighNode.gain.value = parseFloat(document.getElementById('eqHigh').value);
@@ -523,13 +596,103 @@ function updateEffectParams() {
     reverbWetGain.gain.value = parseFloat(document.getElementById('revMix').value) / 100;
 }
 
+// STAGE 1 DSP: Multi-Band Soft-Knee Spectral Expander & Denoiser
+function applyStudioDenoise(inputBuffer) {
+    const enabled = document.getElementById('denoiseEnable').checked;
+    const sr = inputBuffer.sampleRate;
+    const inData = inputBuffer.getChannelData(0);
+    const outBuffer = audioCtx.createBuffer(1, inData.length, sr);
+    const outData = outBuffer.getChannelData(0);
+
+    if (!enabled) {
+        outData.set(inData);
+        return outBuffer;
+    }
+
+    const amount = parseFloat(document.getElementById('dnAmount').value) / 100;
+    const threshDb = parseFloat(document.getElementById('dnThresh').value);
+    const thresholdLinear = Math.pow(10, threshDb / 20);
+
+    // 1-pole High-Pass DC/Rumble blocker in time-domain before pitch detection
+    const lowCutHz = parseFloat(document.getElementById('dnLowCut').value);
+    const rc = 1.0 / (2.0 * Math.PI * lowCutHz);
+    const dt = 1.0 / sr;
+    const alphaHP = rc / (rc + dt);
+
+    let prevIn = 0;
+    let prevHP = 0;
+    const hpFiltered = new Float32Array(inData.length);
+    for (let i = 0; i < inData.length; i++) {
+        prevHP = alphaHP * (prevHP + inData[i] - prevIn);
+        prevIn = inData[i];
+        hpFiltered[i] = prevHP;
+    }
+
+    // Soft-Knee RMS Envelope Follower + Spectral Noise Suppression
+    const windowSize = 256;
+    let env = 0;
+    const attackCoef = Math.exp(-1.0 / (sr * 0.004));  // 4ms fast vocal attack
+    const releaseCoef = Math.exp(-1.0 / (sr * 0.085)); // 85ms smooth natural vocal decay
+    let smoothGain = 1.0;
+
+    for (let i = 0; i < hpFiltered.length; i++) {
+        const absSample = Math.abs(hpFiltered[i]);
+        if (absSample > env) {
+            env = attackCoef * env + (1 - attackCoef) * absSample;
+        } else {
+            env = releaseCoef * env + (1 - releaseCoef) * absSample;
+        }
+
+        let targetGain = 1.0;
+        if (env < thresholdLinear) {
+            // Soft-knee downward expander curve (eliminates noise without choppy gating)
+            const ratio = env / (thresholdLinear + 1e-9);
+            const expanded = Math.pow(ratio, 1.0 + amount * 3.5);
+            targetGain = (1.0 - amount) + amount * expanded;
+        }
+
+        smoothGain = 0.995 * smoothGain + 0.005 * targetGain;
+        outData[i] = hpFiltered[i] * smoothGain;
+    }
+
+    return outBuffer;
+}
+
+// Auto-Learn Noise Floor Button
+document.getElementById('learnNoiseBtn').addEventListener('click', () => {
+    if (!rawRecordedBuffer) {
+        alert("سجل مقطع صوتي الأول (وسيبه أول ثانية ساكت) عشان الأبليكيشن يلقط بصمة دوشة المكان!");
+        return;
+    }
+    const data = rawRecordedBuffer.getChannelData(0);
+    const frameSize = 1024;
+    let minRms = 999;
+
+    for (let i = 0; i < data.length - frameSize; i += frameSize) {
+        let sum = 0;
+        for (let j = 0; j < frameSize; j++) sum += data[i + j] * data[i + j];
+        let rms = Math.sqrt(sum / frameSize);
+        if (rms > 0.0001 && rms < minRms) minRms = rms;
+    }
+
+    if (minRms < 999) {
+        // Set threshold slightly above the quietest ambient noise floor (+6 dB margin)
+        let learnedDb = Math.round(20 * Math.log10(minRms) + 6);
+        learnedDb = Math.max(-62, Math.min(-24, learnedDb));
+        const threshSlider = document.getElementById('dnThresh');
+        threshSlider.value = learnedDb;
+        threshSlider.dispatchEvent(new Event('input'));
+        document.getElementById('statusBadge').innerText = `تم ضبط عزل الضوضاء على ${learnedDb} dB ✓`;
+    }
+});
+
 // Autocorrelation Pitch Detection
 function detectPitch(buf, sampleRate) {
     let size = buf.length;
     let rms = 0;
     for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
     rms = Math.sqrt(rms / size);
-    if (rms < 0.015) return -1;
+    if (rms < 0.012) return -1;
 
     let r1 = 0, r2 = size - 1, thres = 0.2;
     for (let i = 0; i < size / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
@@ -549,353 +712,24 @@ function detectPitch(buf, sampleRate) {
     for (let i = d; i < size; i++) {
         if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
     }
-    let T0 = maxpos;
-    return sampleRate / T0;
+    return sampleRate / maxpos;
 }
 
 function getNearestScaleMidi(midiFloat, root, scaleArr) {
     let bestMidi = Math.round(midiFloat);
     let minDiff = 999;
-    for (let m = Math.floor(midiFloat) - 2; m <= Math.ceil(midiFloat) + 2; m++) {
-        let noteInOctave = ((m % 12) - root + 12) % 12;
-        if (scaleArr.includes(noteInOctave)) {
-            let diff = Math.abs(midiFloat - m);
+    for (let octaveBase = Math.floor(midiFloat) - 12; octaveBase <= Math.ceil(midiFloat) + 12; octaveBase++) {
+        for (let interval of scaleArr) {
+            let candidateMidi = Math.floor(octaveBase / 12) * 12 + root + interval;
+            let diff = Math.abs(midiFloat - candidateMidi);
             if (diff < minDiff) {
                 minDiff = diff;
-                bestMidi = m;
+                bestMidi = candidateMidi;
             }
         }
     }
     return bestMidi;
 }
 
-// Granular Pitch Corrector / Auto-Tune Processor on Buffer
-function applyAutoTuneToBuffer(inputBuffer) {
-    const enabled = document.getElementById('autotuneEnable').checked;
-    const speed = parseFloat(document.getElementById('atSpeed').value) / 100;
-    const manualSemitones = parseFloat(document.getElementById('pitchShift').value);
-    const root = parseInt(document.getElementById('scaleRoot').value);
-    const scaleName = document.getElementById('scaleType').value;
-    const scaleArr = SCALES[scaleName] || SCALES.minor;
-
-    const sr = inputBuffer.sampleRate;
-    const inData = inputBuffer.getChannelData(0);
-    const outBuffer = audioCtx.createBuffer(1, inData.length, sr);
-    const outData = outBuffer.getChannelData(0);
-
-    if (!enabled && manualSemitones === 0) {
-        outData.set(inData);
-        return outBuffer;
-    }
-
-    const grainSize = 1024;
-    const hopSize = 512;
-    let readPos = 0;
-
-    for (let i = 0; i < inData.length - grainSize; i += hopSize) {
-        const slice = inData.subarray(i, i + grainSize);
-        let pitchHz = detectPitch(slice, sr);
-        let ratio = Math.pow(2, manualSemitones / 12);
-
-        if (enabled && pitchHz > 75 && pitchHz < 900) {
-            let midiFloat = 12 * Math.log2(pitchHz / 440) + 69;
-            let targetMidi = getNearestScaleMidi(midiFloat, root, scaleArr);
-            let targetHz = 440 * Math.pow(2, (targetMidi - 69) / 12);
-            let autoRatio = targetHz / pitchHz;
-            // Blend by Retune Speed
-            let blendedAutoRatio = 1.0 + (autoRatio - 1.0) * speed;
-            ratio *= blendedAutoRatio;
-        }
-
-        // Clamp ratio to realistic vocal bounds
-        ratio = Math.max(0.5, Math.min(2.0, ratio));
-
-        for (let j = 0; j < grainSize; j++) {
-            // Hann window
-            let win = 0.5 * (1 - Math.cos((2 * Math.PI * j) / (grainSize - 1)));
-            let idx = i + Math.floor(j * ratio);
-            if (idx < inData.length) {
-                outData[i + j] += inData[idx] * win;
-            }
-        }
-    }
-    return outBuffer;
-}
-
-// Recording Logic
-document.getElementById('recBtn').addEventListener('click', async () => {
-    initAudioContext();
-    const recBtn = document.getElementById('recBtn');
-    const badge = document.getElementById('statusBadge');
-
-    if (!isRecording) {
-        try {
-            micStream = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-            });
-            const source = audioCtx.createMediaStreamSource(micStream);
-            scriptProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
-            recordedChunks = [];
-
-            scriptProcessor.onaudioprocess = (e) => {
-                if (!isRecording) return;
-                const input = e.inputBuffer.getChannelData(0);
-                recordedChunks.push(new Float32Array(input));
-
-                // Live pitch detection HUD
-                const p = detectPitch(input, audioCtx.sampleRate);
-                if (p > 65 && p < 1000) {
-                    const midi = Math.round(12 * Math.log2(p / 440) + 69);
-                    const noteName = NOTE_STRINGS[midi % 12] + (Math.floor(midi / 12) - 1);
-                    document.getElementById('detectedNote').innerText = `${Math.round(p)} Hz | ${noteName}`;
-                }
-            };
-
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(audioCtx.destination);
-
-            if (document.getElementById('liveMonitorToggle').checked) {
-                source.connect(eqLowNode);
-            }
-
-            isRecording = true;
-            recBtn.classList.add('active');
-            recBtn.innerText = "⏹ إيقاف التسجيل";
-            badge.classList.add('recording');
-            badge.innerText = "جاري التسجيل...";
-        } catch (err) {
-            alert("يرجى السماح بصلاحية الميكروفون للتسجيل: " + err.message);
-        }
-    } else {
-        isRecording = false;
-        if (micStream) micStream.getTracks().forEach(t => t.stop());
-        if (scriptProcessor) scriptProcessor.disconnect();
-
-        // Flatten chunks into AudioBuffer
-        let totalLen = recordedChunks.reduce((acc, c) => acc + c.length, 0);
-        rawRecordedBuffer = audioCtx.createBuffer(1, totalLen, audioCtx.sampleRate);
-        let channel = rawRecordedBuffer.getChannelData(0);
-        let offset = 0;
-        for (let c of recordedChunks) {
-            channel.set(c, offset);
-            offset += c.length;
-        }
-
-        recBtn.classList.remove('active');
-        recBtn.innerText = "⏺ تسجيل جديد";
-        badge.classList.remove('recording');
-        badge.innerText = "تم حفظ التسجيل الخام ✓";
-        document.getElementById('playBtn').disabled = false;
-        document.getElementById('exportBtn').disabled = false;
-    }
-});
-
-// Playback with Live Effects + Auto-Tune
-document.getElementById('playBtn').addEventListener('click', () => {
-    if (!rawRecordedBuffer) return;
-    initAudioContext();
-    const playBtn = document.getElementById('playBtn');
-
-    if (isPlaying && currentSource) {
-        currentSource.stop();
-        isPlaying = false;
-        playBtn.classList.remove('active');
-        playBtn.innerText = "▶ تشغيل الميكس";
-        return;
-    }
-
-    const tunedBuffer = applyAutoTuneToBuffer(rawRecordedBuffer);
-    currentSource = audioCtx.createBufferSource();
-    currentSource.buffer = tunedBuffer;
-    currentSource.connect(eqLowNode);
-
-    currentSource.onended = () => {
-        isPlaying = false;
-        playBtn.classList.remove('active');
-        playBtn.innerText = "▶ تشغيل الميكس";
-    };
-
-    currentSource.start(0);
-    isPlaying = true;
-    playBtn.classList.add('active');
-    playBtn.innerText = "⏹ إيقاف التشغيل";
-});
-
-// Offline Render & WAV Export
-document.getElementById('exportBtn').addEventListener('click', async () => {
-    if (!rawRecordedBuffer) return;
-    const badge = document.getElementById('statusBadge');
-    badge.innerText = "جاري ريندر الفلاتر...";
-
-    const tunedBuffer = applyAutoTuneToBuffer(rawRecordedBuffer);
-    const tailSeconds = 3.0;
-    const totalSamples = tunedBuffer.length + Math.floor(audioCtx.sampleRate * tailSeconds);
-    const offlineCtx = new OfflineAudioContext(2, totalSamples, audioCtx.sampleRate);
-
-    const src = offlineCtx.createBufferSource();
-    src.buffer = tunedBuffer;
-
-    const eqL = offlineCtx.createBiquadFilter();
-    eqL.type = "lowshelf"; eqL.frequency.value = 120;
-    eqL.gain.value = parseFloat(document.getElementById('eqLow').value);
-
-    const eqM = offlineCtx.createBiquadFilter();
-    eqM.type = "peaking"; eqM.frequency.value = 1200;
-    eqM.gain.value = parseFloat(document.getElementById('eqMid').value);
-
-    const eqH = offlineCtx.createBiquadFilter();
-    eqH.type = "highshelf"; eqH.frequency.value = 8000;
-    eqH.gain.value = parseFloat(document.getElementById('eqHigh').value);
-
-    const dly = offlineCtx.createDelay(2.0);
-    dly.delayTime.value = parseFloat(document.getElementById('delayTime').value) / 1000;
-    const dlyFb = offlineCtx.createGain();
-    dlyFb.gain.value = parseFloat(document.getElementById('delayFb').value) / 100;
-    const dlyWet = offlineCtx.createGain();
-    dlyWet.gain.value = parseFloat(document.getElementById('delayMix').value) / 100;
-
-    const conv = offlineCtx.createConvolver();
-    conv.buffer = createImpulseResponse(parseFloat(document.getElementById('revDecay').value), 2.5);
-    const revWet = offlineCtx.createGain();
-    revWet.gain.value = parseFloat(document.getElementById('revMix').value) / 100;
-
-    src.connect(eqL); eqL.connect(eqM); eqM.connect(eqH);
-    eqH.connect(offlineCtx.destination);
-
-    eqH.connect(dly); dly.connect(dlyFb); dlyFb.connect(dly);
-    dly.connect(dlyWet); dlyWet.connect(offlineCtx.destination);
-
-    eqH.connect(conv); conv.connect(revWet); revWet.connect(offlineCtx.destination);
-
-    src.start(0);
-    const rendered = await offlineCtx.startRendering();
-    const wavBlob = bufferToWave(rendered, rendered.length);
-    const url = URL.createObjectURL(wavBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Sunny_Vocal_Mix_${Date.now()}.wav`;
-    a.click();
-    badge.innerText = "تم تصدير ملف الـ WAV ✓";
-});
-
-function bufferToWave(abuffer, len) {
-    let numOfChan = abuffer.numberOfChannels,
-        length = len * numOfChan * 2 + 44,
-        buffer = new ArrayBuffer(length),
-        view = new DataView(buffer),
-        channels = [], i, sample, offset = 0, pos = 0;
-
-    function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-    function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-
-    setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8);
-    setUint32(0x45564157); // "WAVE"
-    setUint32(0x20746d66); // "fmt "
-    setUint32(16);
-    setUint16(1);
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan);
-    setUint16(numOfChan * 2);
-    setUint16(16);
-    setUint32(0x61746164); // "data"
-    setUint32(length - pos - 4);
-
-    for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
-    while (pos < length) {
-        for (i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-            view.setInt16(pos, sample, true);
-            pos += 2;
-        }
-        offset++;
-    }
-    return new Blob([buffer], { type: "audio/wav" });
-}
-
-// UI Bindings
-const sliders = [
-    ['atSpeed', 'atSpeedVal', '%'],
-    ['pitchShift', 'pitchShiftVal', ' ST'],
-    ['eqLow', 'eqLowVal', ' dB'],
-    ['eqMid', 'eqMidVal', ' dB'],
-    ['eqHigh', 'eqHighVal', ' dB'],
-    ['delayMix', 'delayMixVal', '%'],
-    ['delayTime', 'delayTimeVal', ' ms'],
-    ['delayFb', 'delayFbVal', '%'],
-    ['revMix', 'revMixVal', '%'],
-    ['revDecay', 'revDecayVal', ' ثانية']
-];
-
-sliders.forEach(([id, valId, unit]) => {
-    const el = document.getElementById(id);
-    el.addEventListener('input', () => {
-        document.getElementById(valId).innerText = el.value + unit;
-        if (id === 'revDecay' && audioCtx && convolverNode) {
-            convolverNode.buffer = createImpulseResponse(parseFloat(el.value), 2.5);
-        }
-        updateEffectParams();
-    });
-});
-
-function applyPreset(name) {
-    document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-    event.target.classList.add('active');
-    if (name === 'studio') {
-        setValues({ atSpeed: 55, pitchShift: 0, eqLow: -1, eqMid: 2, eqHigh: 3.5, delayMix: 15, delayTime: 250, delayFb: 25, revMix: 25, revDecay: 1.8 });
-    } else if (name === 'trap') {
-        setValues({ atSpeed: 100, pitchShift: 0, eqLow: -3, eqMid: 3, eqHigh: 6, delayMix: 28, delayTime: 320, delayFb: 40, revMix: 35, revDecay: 2.4 });
-    } else if (name === 'mawwal') {
-        setValues({ atSpeed: 40, pitchShift: 0, eqLow: 1, eqMid: 2.5, eqHigh: 4, delayMix: 42, delayTime: 420, delayFb: 55, revMix: 65, revDecay: 4.2 });
-    } else if (name === 'radio') {
-        setValues({ atSpeed: 20, pitchShift: 0, eqLow: 5, eqMid: -2, eqHigh: 4, delayMix: 5, delayTime: 120, delayFb: 10, revMix: 10, revDecay: 0.8 });
-    }
-}
-
-function setValues(obj) {
-    for (let k in obj) {
-        const el = document.getElementById(k);
-        if (el) {
-            el.value = obj[k];
-            el.dispatchEvent(new Event('input'));
-        }
-    }
-}
-
-// Visualizer Canvas
-function drawVisualizer() {
-    requestAnimationFrame(drawVisualizer);
-    const canvas = document.getElementById('scopeCanvas');
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width = canvas.clientWidth;
-    const height = canvas.height = canvas.clientHeight;
-
-    ctx.fillStyle = '#07090d';
-    ctx.fillRect(0, 0, width, height);
-
-    if (!analyserNode) return;
-    const bufferLength = analyserNode.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyserNode.getByteTimeDomainData(dataArray);
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = isRecording ? '#ff2a54' : '#00e5ff';
-    ctx.beginPath();
-
-    const sliceWidth = width * 1.0 / bufferLength;
-    let x = 0;
-    for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = v * height / 2;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-        x += sliceWidth;
-    }
-    ctx.lineTo(width, height / 2);
-    ctx.stroke();
-}
-</script>
-</body>
-</html>
+// STAGE 2 DSP: Auto-Tune Processor (runs AFTER Denoiser for accurate pitch tracking)
+function applyAuto
